@@ -21,7 +21,7 @@ import static de.diddiz.util.MaterialName.typeFromName;
 import static de.diddiz.util.Utils.*;
 
 public final class QueryParams implements Cloneable {
-    private static final Set<Integer> keywords = new HashSet<Integer>(Arrays.asList("player".hashCode(), "area".hashCode(), "selection".hashCode(), "sel".hashCode(), "block".hashCode(), "type".hashCode(), "sum".hashCode(), "destroyed".hashCode(), "created".hashCode(), "chestaccess".hashCode(), "all".hashCode(), "time".hashCode(), "since".hashCode(), "before".hashCode(), "limit".hashCode(), "world".hashCode(), "asc".hashCode(), "desc".hashCode(), "last".hashCode(), "coords".hashCode(), "silent".hashCode(), "chat".hashCode(), "search".hashCode(), "match".hashCode(), "loc".hashCode(), "location".hashCode(), "kills".hashCode(), "killer".hashCode(), "victim".hashCode(), "both".hashCode()));
+    private static final Set<Integer> keywords = new HashSet<Integer>(Arrays.asList("player".hashCode(), "area".hashCode(), "selection".hashCode(), "sel".hashCode(), "block".hashCode(), "type".hashCode(), "sum".hashCode(), "destroyed".hashCode(), "created".hashCode(), "chestaccess".hashCode(), "all".hashCode(), "time".hashCode(), "since".hashCode(), "before".hashCode(), "limit".hashCode(), "world".hashCode(), "asc".hashCode(), "desc".hashCode(), "last".hashCode(), "coords".hashCode(), "silent".hashCode(), "chat".hashCode(), "search".hashCode(), "match".hashCode(), "location".hashCode(), "location".hashCode(), "kills".hashCode(), "killer".hashCode(), "victim".hashCode(), "both".hashCode()));
     public BlockChangeType bct = BlockChangeType.BOTH;
     public int limit = -1, before = 0, since = 0, radius = -1;
     public Location loc = null;
@@ -766,7 +766,7 @@ public final class QueryParams implements Cloneable {
                     throw new IllegalArgumentException("No arguments for '" + param + "'");
                 }
                 match = mysqlTextEscape(join(values, " "));
-            } else if (param.equals("loc") || param.equals("location")) {
+            } else if (param.equals("location") || param.equals("location")) {
                 final String[] vectors = values.length == 1 ? values[0].split(":") : values;
                 if (vectors.length != 3) {
                     throw new IllegalArgumentException("Wrong count arguments for '" + param + "'");

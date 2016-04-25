@@ -13,7 +13,7 @@ import static de.diddiz.util.MaterialName.materialName;
 
 public class BlockChange implements LookupCacheElement {
     public final long id, date;
-    public final Location loc;
+    public final Location location;
     public final Actor actor;
     public final String playerName;
     public final int replaced, type;
@@ -24,7 +24,7 @@ public class BlockChange implements LookupCacheElement {
     public BlockChange(long date, Location loc, Actor actor, int replaced, int type, byte data, String signtext, ChestAccess ca) {
         id = 0;
         this.date = date;
-        this.loc = loc;
+        this.location = loc;
         this.actor = actor;
         this.replaced = replaced;
         this.type = type;
@@ -37,7 +37,7 @@ public class BlockChange implements LookupCacheElement {
     public BlockChange(ResultSet rs, QueryParams p) throws SQLException {
         id = p.needId ? rs.getInt("id") : 0;
         date = p.needDate ? rs.getTimestamp("date").getTime() : 0;
-        loc = p.needCoords ? new Location(p.world, rs.getInt("x"), rs.getInt("y"), rs.getInt("z")) : null;
+        location = p.needCoords ? new Location(p.world, rs.getInt("x"), rs.getInt("y"), rs.getInt("z")) : null;
         actor = p.needPlayer ? new Actor(rs) : null;
         playerName = p.needPlayer ? rs.getString("playername") : null;
         replaced = p.needType ? rs.getInt("replaced") : 0;
@@ -110,15 +110,15 @@ public class BlockChange implements LookupCacheElement {
         } else {
             msg.append("replaced ").append(materialName(replaced, (byte) 0)).append(" with ").append(materialName(type, data));
         }
-        if (loc != null) {
-            msg.append(" at ").append(loc.getBlockX()).append(":").append(loc.getBlockY()).append(":").append(loc.getBlockZ());
+        if (location != null) {
+            msg.append(" at ").append(location.getBlockX()).append(":").append(location.getBlockY()).append(":").append(location.getBlockZ());
         }
         return msg.toString();
     }
 
     @Override
     public Location getLocation() {
-        return loc;
+        return location;
     }
 
     @Override

@@ -149,12 +149,17 @@ public class Consumer extends TimerTask {
         queueBlockReplace(actor, new Location(after.getWorld(), after.getX(), after.getY(), after.getZ()), typeBefore, dataBefore, after.getTypeId(), after.getRawData());
     }
 
-    public void queueBlockReplace(Actor actor, Location loc, int typeBefore, byte dataBefore, int typeAfter, byte dataAfter) {
+    public void queueBlockReplace(Actor actor, Location location, int typeBefore, byte dataBefore, int typeAfter, byte dataAfter) {
+        if(!isValidLocation(location))
+        {
+            return;
+        }
+
         if (dataBefore == 0 && (typeBefore != typeAfter)) {
-            queueBlock(actor, loc, typeBefore, typeAfter, dataAfter);
+            queueBlock(actor, location, typeBefore, typeAfter, dataAfter);
         } else {
-            queueBlockBreak(actor, loc, typeBefore, dataBefore);
-            queueBlockPlace(actor, loc, typeAfter, dataAfter);
+            queueBlockBreak(actor, location, typeBefore, dataBefore);
+            queueBlockPlace(actor, location, typeAfter, dataAfter);
         }
     }
 
@@ -168,7 +173,7 @@ public class Consumer extends TimerTask {
      * @param itemData Data of the item taken/stored
      */
     public void queueChestAccess(Actor actor, BlockState container, short itemType, short itemAmount, short itemData) {
-        if (!(container instanceof InventoryHolder)) {
+        if (!(container instanceof InventoryHolder) || !isValidLocation(container.getLocation())) {
             throw new IllegalArgumentException("Container must be instanceof InventoryHolder");
         }
         queueChestAccess(actor, new Location(container.getWorld(), container.getX(), container.getY(), container.getZ()), container.getTypeId(), itemType, itemAmount, itemData);
@@ -195,7 +200,7 @@ public class Consumer extends TimerTask {
      * @param container Must be an instance of InventoryHolder
      */
     public void queueContainerBreak(Actor actor, BlockState container) {
-        if (!(container instanceof InventoryHolder)) {
+        if (!(container instanceof InventoryHolder) || !isValidLocation(container.getLocation())) {
             return;
         }
         queueContainerBreak(actor, new Location(container.getWorld(), container.getX(), container.getY(), container.getZ()), container.getTypeId(), container.getRawData(), ((InventoryHolder) container).getInventory());
@@ -223,7 +228,7 @@ public class Consumer extends TimerTask {
      * @param victim Can't be null
      */
     public void queueKill(Entity killer, Entity victim) {
-        if (killer == null || victim == null) {
+        if (killer == null || victim == null || !isValidLocation(victim.getLocation())) {
             return;
         }
         int weapon = 0;
@@ -252,7 +257,7 @@ public class Consumer extends TimerTask {
      * @param victim Can't be null
      */
     public void queueKill(Actor killer, Entity victim) {
-        if (killer == null || victim == null) {
+        if (killer == null || victim == null || !isValidLocation(victim.getLocation())) {
             return;
         }
         queueKill(victim.getLocation(), killer, Actor.actorFromEntity(victim), 0);
@@ -278,9 +283,10 @@ public class Consumer extends TimerTask {
      * @param weapon   Item id of the weapon. 0 for no weapon.
      */
     public void queueKill(Location location, Actor killer, Actor victim, int weapon) {
-        if (victim == null || !isLogged(location.getWorld())) {
+        if (victim == null || !isLogged(location.getWorld()) || !isValidLocation(location)) {
             return;
         }
+
         queue.add(new KillRow(location, killer == null ? null : killer, victim, weapon));
     }
 
@@ -354,6 +360,28 @@ public class Consumer extends TimerTask {
 
     public void queueLeave(Player player) {
         queue.add(new PlayerLeaveRow(player));
+    }
+
+    private static final int    MEDIUMINT_SIGNED_MAX = 8388607,
+                                MEDIUMINT_SIGNED_MIN = -8388608;
+
+    private boolean isValidLocation(Location location)
+    {
+        /*
+            * Detect values outside the valid range for MEDIUMINT
+            * MEDIUMINT has a min of '-8388608' and a max of '8388607'
+            * Keep them inside this range to avoid errors on the SQL end.
+            * Anything outside this range should be invalid in the game world anyway
+            * and most likely represent an invalid plugin action.
+            */
+        if( location.getBlockX() < MEDIUMINT_SIGNED_MIN || location.getBlockX() > MEDIUMINT_SIGNED_MAX ||
+                    location.getBlockZ() < MEDIUMINT_SIGNED_MIN || location.getBlockZ() > MEDIUMINT_SIGNED_MAX)
+        {
+            getLogger().log(Level.SEVERE, "[Consumer] Troublesome query from location: " +
+                                                  location.getBlockX() + "," + location.getBlockY() + "," + location.getBlockZ());
+            return false;
+        }
+        return true;
     }
 
     // Deprecated methods re-added for API compatability
@@ -750,11 +778,15 @@ public class Consumer extends TimerTask {
         return playerIds.containsKey(actor);
     }
 
-    private void queueBlock(Actor actor, Location loc, int typeBefore, int typeAfter, byte data, String signtext, ChestAccess ca) {
+    private void queueBlock(Actor actor, Location location, int typeBefore, int typeAfter, byte data, String signtext, ChestAccess ca) {
+        if(!isValidLocation(location))
+        {
+            return;
+        }
 
         if (Config.fireCustomEvents) {
             // Create and call the event
-            BlockChangePreLogEvent event = new BlockChangePreLogEvent(actor, loc, typeBefore, typeAfter, data, signtext, ca);
+            BlockChangePreLogEvent event = new BlockChangePreLogEvent(actor, location, typeBefore, typeAfter, data, signtext, ca);
             logblock.getServer().getPluginManager().callEvent(event);
             if (event.isCancelled()) {
                 return;
@@ -762,7 +794,7 @@ public class Consumer extends TimerTask {
 
             // Update variables
             actor = event.getOwnerActor();
-            loc = event.getLocation();
+            location = event.getLocation();
             typeBefore = event.getTypeBefore();
             typeAfter = event.getTypeAfter();
             data = event.getData();
@@ -770,10 +802,10 @@ public class Consumer extends TimerTask {
             ca = event.getChestAccess();
         }
         // Do this last so LogBlock still has final say in what is being added
-        if (actor == null || loc == null || typeBefore < 0 || typeAfter < 0 || (Config.safetyIdCheck && (typeBefore > 255 || typeAfter > 255)) || hiddenPlayers.contains(actor.getName().toLowerCase()) || !isLogged(loc.getWorld()) || typeBefore != typeAfter && hiddenBlocks.contains(typeBefore) && hiddenBlocks.contains(typeAfter)) {
+        if (actor == null || location == null || typeBefore < 0 || typeAfter < 0 || (Config.safetyIdCheck && (typeBefore > 255 || typeAfter > 255)) || hiddenPlayers.contains(actor.getName().toLowerCase()) || !isLogged(location.getWorld()) || typeBefore != typeAfter && hiddenBlocks.contains(typeBefore) && hiddenBlocks.contains(typeAfter)) {
             return;
         }
-        queue.add(new BlockRow(loc, actor, typeBefore, typeAfter, data, signtext, ca));
+        queue.add(new BlockRow(location, actor, typeBefore, typeAfter, data, signtext, ca));
     }
 
     private String playerID(Actor actor) {
@@ -829,9 +861,9 @@ public class Consumer extends TimerTask {
 
         @Override
         public String[] getInserts() {
-            final String table = getWorldConfig(loc.getWorld()).table;
+            final String table = getWorldConfig(location.getWorld()).table;
             final String[] inserts = new String[ca != null || signtext != null ? 2 : 1];
-            inserts[0] = "INSERT INTO `" + table + "` (date, playerid, replaced, type, data, x, y, z) VALUES (FROM_UNIXTIME(" + date + "), " + playerID(actor) + ", " + replaced + ", " + type + ", " + data + ", '" + loc.getBlockX() + "', " + safeY(loc) + ", '" + loc.getBlockZ() + "');";
+            inserts[0] = "INSERT INTO `" + table + "` (date, playerid, replaced, type, data, x, y, z) VALUES (FROM_UNIXTIME(" + date + "), " + playerID(actor) + ", " + replaced + ", " + type + ", " + data + ", '" + location.getBlockX() + "', " + safeY(location) + ", '" + location.getBlockZ() + "');";
             if (signtext != null) {
                 inserts[1] = "INSERT INTO `" + table + "-sign` (id, signtext) values (LAST_INSERT_ID(), '" + mysqlTextEscape(signtext) + "');";
             } else if (ca != null) {
@@ -855,27 +887,14 @@ public class Consumer extends TimerTask {
             this.connection = connection;
         }
 
-        private static final int    MEDIUMINT_SIGNED_MAX = 8388607,
-                                    MEDIUMINT_SIGNED_MIN = -8388608;
-
         @Override
         public void executeStatements() throws SQLException {
-            /*
-            * Detect values outside the valid range for MEDIUMINT
-            * MEDIUMINT has a min of '-8388608' and a max of '8388607'
-            * Keep them inside this range to avoid errors on the SQL end.
-            * Anything outside this range should be invalid in the game world anyway
-            * and most likely represent an invalid plugin action.
-            */
-            if( loc.getBlockX() < MEDIUMINT_SIGNED_MIN || loc.getBlockX() > MEDIUMINT_SIGNED_MAX ||
-                loc.getBlockZ() < MEDIUMINT_SIGNED_MIN || loc.getBlockZ() > MEDIUMINT_SIGNED_MAX)
+            if(!isValidLocation(location))
             {
-                getLogger().log(Level.SEVERE, "[Consumer] Troublesome query from location: " +
-                                                loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ());
                 return;
             }
 
-            final String table = getWorldConfig(loc.getWorld()).table;
+            final String table = getWorldConfig(location.getWorld()).table;
 
             PreparedStatement ps1 = null;
             PreparedStatement ps = null;
@@ -885,9 +904,9 @@ public class Consumer extends TimerTask {
                 ps1.setInt(2, replaced);
                 ps1.setInt(3, type);
                 ps1.setInt(4, data);
-                ps1.setInt(5, loc.getBlockX());
-                ps1.setInt(6, safeY(loc));
-                ps1.setInt(7, loc.getBlockZ());
+                ps1.setInt(5, location.getBlockX());
+                ps1.setInt(6, safeY(location));
+                ps1.setInt(7, location.getBlockZ());
                 ps1.executeUpdate();
 
                 long id;
@@ -946,7 +965,7 @@ public class Consumer extends TimerTask {
 
         @Override
         public boolean canMerge(MergeableRow row) {
-            return !this.isUnique() && !row.isUnique() && row instanceof BlockRow && getWorldConfig(loc.getWorld()).table.equals(getWorldConfig(((BlockRow) row).loc.getWorld()).table);
+            return !this.isUnique() && !row.isUnique() && row instanceof BlockRow && getWorldConfig(location.getWorld()).table.equals(getWorldConfig(((BlockRow) row).location.getWorld()).table);
         }
 
         @Override
@@ -972,7 +991,7 @@ public class Consumer extends TimerTask {
             actors.addAll(Arrays.asList(second.getActors()));
             players.addAll(Arrays.asList(first.getPlayers()));
             players.addAll(Arrays.asList(second.getPlayers()));
-            table = getWorldConfig(first.loc.getWorld()).table;
+            table = getWorldConfig(first.location.getWorld()).table;
         }
 
         @Override
@@ -991,9 +1010,9 @@ public class Consumer extends TimerTask {
                     ps.setInt(3, row.replaced);
                     ps.setInt(4, row.type);
                     ps.setInt(5, row.data);
-                    ps.setInt(6, row.loc.getBlockX());
-                    ps.setInt(7, safeY(row.loc));
-                    ps.setInt(8, row.loc.getBlockZ());
+                    ps.setInt(6, row.location.getBlockX());
+                    ps.setInt(7, safeY(row.location));
+                    ps.setInt(8, row.location.getBlockZ());
                     ps.addBatch();
                 }
                 ps.executeBatch();
@@ -1021,7 +1040,7 @@ public class Consumer extends TimerTask {
 
         @Override
         public boolean canMerge(MergeableRow row) {
-            return !row.isUnique() && row instanceof BlockRow && table.equals(getWorldConfig(((BlockRow) row).loc.getWorld()).table);
+            return !row.isUnique() && row instanceof BlockRow && table.equals(getWorldConfig(((BlockRow) row).location.getWorld()).table);
         }
 
         @Override

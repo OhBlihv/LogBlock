@@ -153,7 +153,7 @@ public class WorldEditor implements Runnable {
             if (dontRollback.contains(replaced)) {
                 return PerformResult.BLACKLISTED;
             }
-            final Block block = loc.getBlock();
+            final Block block = location.getBlock();
             if (replaced == 0 && block.getTypeId() == 0) {
                 return PerformResult.NO_ACTION;
             }
