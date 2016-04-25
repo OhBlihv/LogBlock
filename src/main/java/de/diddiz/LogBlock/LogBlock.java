@@ -1,7 +1,28 @@
 package de.diddiz.LogBlock;
 
 import de.diddiz.LogBlock.config.Config;
-import de.diddiz.LogBlock.listeners.*;
+import de.diddiz.LogBlock.listeners.BanListener;
+import de.diddiz.LogBlock.listeners.BlockBreakLogging;
+import de.diddiz.LogBlock.listeners.BlockBurnLogging;
+import de.diddiz.LogBlock.listeners.BlockPlaceLogging;
+import de.diddiz.LogBlock.listeners.BlockSpreadLogging;
+import de.diddiz.LogBlock.listeners.ChatLogging;
+import de.diddiz.LogBlock.listeners.ChestAccessLogging;
+import de.diddiz.LogBlock.listeners.CreatureInteractLogging;
+import de.diddiz.LogBlock.listeners.EndermenLogging;
+import de.diddiz.LogBlock.listeners.ExplosionLogging;
+import de.diddiz.LogBlock.listeners.FluidFlowLogging;
+import de.diddiz.LogBlock.listeners.InteractLogging;
+import de.diddiz.LogBlock.listeners.KillLogging;
+import de.diddiz.LogBlock.listeners.LeavesDecayLogging;
+import de.diddiz.LogBlock.listeners.LockedChestDecayLogging;
+import de.diddiz.LogBlock.listeners.PlayerInfoLogging;
+import de.diddiz.LogBlock.listeners.SignChangeLogging;
+import de.diddiz.LogBlock.listeners.SnowFadeLogging;
+import de.diddiz.LogBlock.listeners.SnowFormLogging;
+import de.diddiz.LogBlock.listeners.StructureGrowLogging;
+import de.diddiz.LogBlock.listeners.ToolListener;
+import de.diddiz.LogBlock.listeners.WitherLogging;
 import de.diddiz.util.MySQLConnectionPool;
 import de.diddiz.worldedit.WorldEditLoggingHook;
 import org.bukkit.ChatColor;
@@ -13,7 +34,6 @@ import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -131,12 +151,6 @@ public class LogBlock extends JavaPlugin {
                 final Permission perm = new Permission("logblock.tools." + tool.name, tool.permissionDefault);
                 pm.addPermission(perm);
             }
-        }
-        try {
-            Metrics metrics = new Metrics(this);
-            metrics.start();
-        } catch (IOException ex) {
-            getLogger().info("Could not start metrics: " + ex.getMessage());
         }
     }
 
