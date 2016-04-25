@@ -1,6 +1,5 @@
 package de.diddiz.LogBlock;
 
-import static de.diddiz.LogBlock.Actor.actorFromString;
 import de.diddiz.LogBlock.config.Config;
 import de.diddiz.LogBlock.events.BlockChangePreLogEvent;
 import org.bukkit.Location;
@@ -18,16 +17,29 @@ import org.bukkit.projectiles.ProjectileSource;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
-import java.sql.*;
-import java.util.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+import java.util.TimerTask;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 
+import static de.diddiz.LogBlock.Actor.actorFromString;
 import static de.diddiz.LogBlock.config.Config.*;
-import static de.diddiz.util.Utils.mysqlTextEscape;
 import static de.diddiz.util.BukkitUtils.*;
+import static de.diddiz.util.Utils.mysqlTextEscape;
 import static org.bukkit.Bukkit.getLogger;
 
 public class Consumer extends TimerTask {
@@ -860,7 +872,7 @@ public class Consumer extends TimerTask {
                 ps1.setInt(7, loc.getBlockZ());
                 ps1.executeUpdate();
 
-                int id;
+                long id;
                 ResultSet rs = ps1.getGeneratedKeys();
                 rs.next();
                 id = rs.getInt(1);
@@ -868,14 +880,14 @@ public class Consumer extends TimerTask {
                 if (signtext != null) {
                     ps = connection.prepareStatement("INSERT INTO `" + table + "-sign` (signtext, id) VALUES(?, ?)");
                     ps.setString(1, signtext);
-                    ps.setInt(2, id);
+                    ps.setLong(2, id);
                     ps.executeUpdate();
                 } else if (ca != null) {
                     ps = connection.prepareStatement("INSERT INTO `" + table + "-chest` (itemtype, itemamount, itemdata, id) values (?, ?, ?, ?)");
                     ps.setInt(1, ca.itemType);
                     ps.setInt(2, ca.itemAmount);
                     ps.setInt(3, ca.itemData);
-                    ps.setInt(4, id);
+                    ps.setLong(4, id);
                     ps.executeUpdate();
                 }
             } catch (final SQLException ex) {
