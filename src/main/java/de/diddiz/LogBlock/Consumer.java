@@ -855,8 +855,26 @@ public class Consumer extends TimerTask {
             this.connection = connection;
         }
 
+        private static final int    MEDIUMINT_SIGNED_MAX = 8388607,
+                                    MEDIUMINT_SIGNED_MIN = -8388608;
+
         @Override
         public void executeStatements() throws SQLException {
+            /*
+            * Detect values outside the valid range for MEDIUMINT
+            * MEDIUMINT has a min of '-8388608' and a max of '8388607'
+            * Keep them inside this range to avoid errors on the SQL end.
+            * Anything outside this range should be invalid in the game world anyway
+            * and most likely represent an invalid plugin action.
+            */
+            if( loc.getBlockX() < MEDIUMINT_SIGNED_MIN || loc.getBlockX() > MEDIUMINT_SIGNED_MAX ||
+                loc.getBlockZ() < MEDIUMINT_SIGNED_MIN || loc.getBlockZ() > MEDIUMINT_SIGNED_MAX)
+            {
+                getLogger().log(Level.SEVERE, "[Consumer] Troublesome query from location: " +
+                                                loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ());
+                return;
+            }
+
             final String table = getWorldConfig(loc.getWorld()).table;
 
             PreparedStatement ps1 = null;
